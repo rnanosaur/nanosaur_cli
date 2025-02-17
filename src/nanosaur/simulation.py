@@ -68,6 +68,8 @@ simulation_tools = {
     }
 }
 
+SIMULATION_WORLD_CHOICES = ['empty', 'lab', 'office', 'warehouse']
+
 
 def parser_simulation_menu(subparsers: argparse._SubParsersAction, params: Params) -> argparse.ArgumentParser:
     # Get the simulation data from the parameters
@@ -92,15 +94,16 @@ def parser_simulation_menu(subparsers: argparse._SubParsersAction, params: Param
         'set', help="Select the simulator you want to use")
     parser_simulation_set.set_defaults(func=simulation_set)
 
+    # Add simulation world subcommand
+    parser_simulation_world = simulation_subparsers.add_parser(
+        'world', help="Set a world for the simulation")
+    parser_simulation_world.add_argument('--new', type=str, help="Specify another world not listed")
+    parser_simulation_world.set_defaults(func=simulation_set_world)
+
     # Add simulation headless subcommand
     parser_simulation_headless = simulation_subparsers.add_parser(
         'headless', help="Set the simulation in headless mode")
     parser_simulation_headless.set_defaults(func=simulation_set_headless)
-    
-    # Add simulation world subcommand
-    parser_simulation_world = simulation_subparsers.add_parser(
-        'world', help="Set a world for the simulation")
-    parser_simulation_world.set_defaults(func=simulation_set_world)
     return parser_simulation
 
 
@@ -459,7 +462,40 @@ def simulation_set_world(platform, params: Params, args):
     # Get the current simulation tool
     simulation_data = params.get('simulation', {})
     world = simulation_data.get('world', '')
-    
+
+    # Get the list of available worlds
+    all_worlds = SIMULATION_WORLD_CHOICES.copy()
+    # Add the current world to the list if it's not already included
+    if world and world not in all_worlds:
+        all_worlds.append(world)
+
+    if args.new is not None:
+        if args.new not in all_worlds:
+            all_worlds.append(args.new)
+            simulation_data['world'] = args.new
+            params['simulation'] = simulation_data
+            print(TerminalFormatter.color_text(f"World {args.new} added", color='green'))
+        else:
+            print(TerminalFormatter.color_text(f"World {args.new} already exists", color='red'))
+            return False
+        return True
+
+    # Ask the user to select a world
+    question = [
+        inquirer.List(
+            'world',
+            message="Select the world for the simulation",
+            choices=all_worlds,
+            default=world
+        )
+    ]
+    # Get the user's answer
+    answer = inquirer.prompt(question, theme=GreenPassion())
+    if answer is None:
+        return False
+    # Save the selected world
+    simulation_data['world'] = answer['world']
+
     params['simulation'] = simulation_data
     # print(TerminalFormatter.color_text(f"Headless mode set to: {answer['headless']}", color='green'))
     return True
