@@ -411,10 +411,13 @@ def debug(platform, params: utilities.Params, args):
         if selected_location == 'host':
             # Debug locally
             if selected_launcher == 'nanosaur':
-                return simulation_robot_start_debug(params, options)
-            isaac_sim_path = params.get('isaac_sim_path', None)
-            headless = params.get('simulation_headless', False)
-            return simulation_start_debug(simulation_ws_path, selected_launcher, headless, isaac_sim_path, options)
+                return simulation_robot_start_debug(params, options) 
+            # Get the simulation data from the parameters
+            simulation_data = params.get('simulation', {})
+            isaac_sim_path = simulation_data.get('isaac_sim_path', None)
+            headless = simulation_data.get('headless', False)
+            world = simulation_data.get('world', 'empty')
+            return simulation_start_debug(simulation_ws_path, selected_launcher, headless, world, isaac_sim_path, options)
         elif selected_location == 'docker':
             # Set the volumes
             volumes = [
@@ -566,7 +569,7 @@ def deploy(platform, params: utilities.Params, args):
         'perception': lambda: deploy_perception(args.image_name),
         'diagnostic': lambda: deploy_diagnostic(),
     }
-    if args.all and args.image_name is not None:
+    if args.all and args.workspace is None:
         workspaces = get_workspaces_path(params)
         workspace_actions = {k: v for k, v in workspace_actions.items() if k in workspaces}
         print(TerminalFormatter.color_text("Deploying all workspaces", bold=True))

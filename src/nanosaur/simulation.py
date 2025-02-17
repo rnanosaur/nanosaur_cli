@@ -96,6 +96,11 @@ def parser_simulation_menu(subparsers: argparse._SubParsersAction, params: Param
     parser_simulation_headless = simulation_subparsers.add_parser(
         'headless', help="Set the simulation in headless mode")
     parser_simulation_headless.set_defaults(func=simulation_set_headless)
+    
+    # Add simulation world subcommand
+    parser_simulation_world = simulation_subparsers.add_parser(
+        'world', help="Set a world for the simulation")
+    parser_simulation_world.set_defaults(func=simulation_set_world)
     return parser_simulation
 
 
@@ -265,7 +270,7 @@ def simulation_robot_start_debug(params, args):
         return False
 
 
-def simulation_start_debug(simulation_ws_path, simulation_tool, headless, isaac_sim_path, args=None):
+def simulation_start_debug(simulation_ws_path, simulation_tool, headless, world, isaac_sim_path, args=None):
     """Install the simulation tools."""
 
     bash_file = f'{simulation_ws_path}/install/setup.bash'
@@ -279,6 +284,9 @@ def simulation_start_debug(simulation_ws_path, simulation_tool, headless, isaac_
     # add isaac_sim_path if available
     if isaac_sim_path:
         command = f"{command} isaac_sim_path:={isaac_sim_path}"
+    # add world if available
+    if world:
+        command = f"{command} world:={world}"
     # add additional arguments
     if args:
         command = f"{command} {' '.join(args)}"
@@ -338,7 +346,8 @@ def simulation_start(platform, params: Params, args):
         nanosaur_ws_path = workspace.get_workspace_path(params, 'ws_simulation_name')
         simulator_tool = simulation_data['tool']
         headless = simulation_data.get('headless', False)
-        return simulation_start_debug(nanosaur_ws_path, simulator_tool, headless, simulation_data.get('isaac_sim_path', None))
+        world = simulation_data.get('world', '')
+        return simulation_start_debug(nanosaur_ws_path, simulator_tool, headless, world, simulation_data.get('isaac_sim_path', None))
     elif selected_location == 'docker':
         # Run from docker container
         return docker_simulator_start(platform, params, args)
@@ -444,3 +453,14 @@ def simulation_set_headless(platform, params: Params, args):
     params['simulation'] = simulation_data
     print(TerminalFormatter.color_text(f"Headless mode set to: {answer['headless']}", color='green'))
     return True
+
+
+def simulation_set_world(platform, params: Params, args):
+    # Get the current simulation tool
+    simulation_data = params.get('simulation', {})
+    world = simulation_data.get('world', '')
+    
+    params['simulation'] = simulation_data
+    # print(TerminalFormatter.color_text(f"Headless mode set to: {answer['headless']}", color='green'))
+    return True
+# EOF
