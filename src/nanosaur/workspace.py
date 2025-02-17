@@ -411,7 +411,7 @@ def debug(platform, params: utilities.Params, args):
         if selected_location == 'host':
             # Debug locally
             if selected_launcher == 'nanosaur':
-                return simulation_robot_start_debug(params, options) 
+                return simulation_robot_start_debug(params, options)
             # Get the simulation data from the parameters
             simulation_data = params.get('simulation', {})
             isaac_sim_path = simulation_data.get('isaac_sim_path', None)
