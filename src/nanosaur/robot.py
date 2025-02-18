@@ -346,7 +346,7 @@ def control_terminal(platform, params: Params, args):
     # Get the robot
     robot = RobotList.current_robot(params)
     if robot.simulation and 'simulation' not in params:
-        print(TerminalFormatter.color_text("No simulation tool selected. Please run simulation set first.", color='red'))
+        print(TerminalFormatter.color_text("No simulation tool selected. Please run 'nanosaur simulation set' first.", color='red'))
         return False
     # Run from docker container
     docker.docker_service_run_command(platform, params, "diagnostic", ["bash"], name=f"{robot.name}-terminal")
@@ -358,7 +358,7 @@ def control_keyboard(platform, params: Params, args):
     # Get the robot
     robot = RobotList.current_robot(params)
     if robot.simulation and 'simulation' not in params:
-        print(TerminalFormatter.color_text("No simulation tool selected. Please run simulation set first.", color='red'))
+        print(TerminalFormatter.color_text("No simulation tool selected. Please run 'nanosaur simulation set' first.", color='red'))
         return False
     # Get location starting function (host or docker)
     selected_location = workspace.get_starting_location(params)

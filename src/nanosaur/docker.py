@@ -126,7 +126,7 @@ def docker_robot_start(platform, params: Params, args):
 
     # Check which simulation tool is selected only if robot.simulation is true
     if robot.simulation and 'simulation' not in params:
-        print(TerminalFormatter.color_text("No simulation tool selected. Please run simulation set first.", color='red'))
+        print(TerminalFormatter.color_text("No simulation tool selected. Please run 'nanosaur simulation set' first.", color='red'))
         return False
 
     # Build env file

@@ -321,7 +321,7 @@ def simulation_start(platform, params: Params, args):
     simulation_data = params.get('simulation', {})
     # Check which simulation tool is selected
     if 'tool' not in simulation_data:
-        print(TerminalFormatter.color_text("No simulation tool selected. Please run simulation set first.", color='red'))
+        print(TerminalFormatter.color_text("No simulation tool selected. Please run 'nanosaur simulation set' first.", color='red'))
         return False
     # Check if the simulation tool is valid
     if simulation_data['tool'] not in simulation_tools:
