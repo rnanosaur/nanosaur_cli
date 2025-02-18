@@ -553,8 +553,10 @@ def deploy(platform, params: utilities.Params, args):
         # Define tag image name and dockerfile path
         tag_image = f"{nanosaur_docker_user}/nanosaur:diagnostic"
         dockerfile_path = f"{shared_path}/Dockerfile"
+        platforms = ["linux/amd64", "linux/arm64"] if device_type == "desktop" else None
+        # TODO: Add a way to verify if the desktop allow multi-platform build
         # Deploy the diagnostic workspace to the docker image for both platforms
-        return ros.deploy_docker_image(dockerfile_path, tag_image)
+        return ros.deploy_docker_image(dockerfile_path, tag_image, platforms=platforms)
 
     # Get the deploy action
     workspace_actions = {
