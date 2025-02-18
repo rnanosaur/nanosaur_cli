@@ -62,6 +62,24 @@ NANOSAUR_MAIN_GITHUB_URL = 'https://github.com/rnanosaur/nanosaur.git'
 NANOSAUR_DOCKER_USER = 'nanosaur'
 
 
+def simulation_build_options(params, args=None):
+    # Retrieve simulation data from parameters
+    simulation_data = params.get('simulation', {})
+    # Define options with default values
+    options = {
+        # 'tool': simulation_data.get('tool', ''),
+        'headless': str(simulation_data.get('headless', False)).lower(),
+        'isaac_sim_path': simulation_data.get('isaac_sim_path', ''),
+        'world': simulation_data.get('world', '')
+    }
+    # Build the command string from options
+    command = ' '.join(f"{key}:={value}" for key, value in options.items() if value)
+    # Append additional arguments if provided
+    if args:
+        command = f"{command} {' '.join(args)}"
+    return command
+
+
 class Robot:
 
     @classmethod
@@ -337,14 +355,10 @@ def build_env_file(params):
         else:
             perception_tag = "none"
         env_file.write(f"PERCEPTION_TAG={perception_tag}\n")
-        # Check which simulation tool is selected and save it in the .env file
-        # Get the simulation data from the parameters
-        simulation_data = params.get('simulation', {})
-        if 'tool' in simulation_data:
-            simulation_tool = simulation_data['tool'].lower().replace(' ', '-')
-            env_file.write(f"SIMULATION={simulation_tool}\n")
-        if 'headless' in simulation_data:
-            env_file.write(f"SIMULATION_HEADLESS={simulation_data['headless']}\n")
+        # Load all commands to pass to the simulation
+        if 'simulation' in params:
+            simulation_commands = simulation_build_options(params)
+            env_file.write(f"SIMULATION_COMMANDS={simulation_commands}\n")
         # Pass the nanosaur version
         nanosaur_version = params['nanosaur_version']
         if nsv.NANOSAUR_CURRENT_DISTRO != nanosaur_version:
@@ -353,7 +367,11 @@ def build_env_file(params):
             env_file.write(f"NANOSAUR_VERSION=-{nsv.NANOSAUR_CURRENT_DISTRO}\n")
 
         # Pass robot ros commands
-        env_file.write(f"COMMANDS={robot.config_to_ros()}\n")
+        ros_args = robot.config_to_ros()
+        if 'simulation' in params:
+            simulation_data = params['simulation']
+            ros_args += f" simulation_tool:={simulation_data['tool']}"
+        env_file.write(f"COMMANDS={ros_args}\n")
 
 
 def package_info(params: Params, verbose: bool):

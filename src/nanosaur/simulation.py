@@ -35,7 +35,7 @@ import nanosaur.variables as nsv
 from nanosaur import workspace
 from nanosaur.docker import docker_simulator_start
 from nanosaur.prompt_colors import TerminalFormatter
-from nanosaur.utilities import Params, RobotList
+from nanosaur.utilities import Params, RobotList, simulation_build_options
 from packaging.version import parse  # type: ignore
 import operator
 
@@ -58,14 +58,8 @@ PATTERN_VERSION = re.compile(r'(>=|<=|>|<|==|!=)\s*([\d\.]+)')
 
 # Dictionary of simulation tools and their commands
 simulation_tools = {
-    "isaac-sim": {
-        "simulator": "ros2 launch isaac_sim_wrapper isaac_sim_server.launch.py",
-        "robot": "ros2 launch nanosaur_isaac-sim nanosaur_bridge.launch.py"
-    },
-    "gazebo": {
-        "simulator": "ros2 launch nanosaur_gazebo gazebo.launch.py",
-        "robot": "ros2 launch nanosaur_gazebo nanosaur_bridge.launch.py"
-    }
+    "isaac-sim": "ros2 launch nanosaur_isaac-sim isaac_sim.launch.py",
+    "gazebo": "ros2 launch nanosaur_gazebo gazebo.launch.py",
 }
 
 SIMULATION_WORLD_CHOICES = ['empty', 'lab', 'office', 'warehouse']
@@ -233,13 +227,14 @@ def simulation_robot_start_debug(params, args):
     if 'tool' not in simulation_data:
         print(TerminalFormatter.color_text("No simulation tool selected. Please select a simulator first.", color='red'))
         return False
-    # Check if the simulation tool is valid and get the command
-    command = simulation_tools[simulation_data['tool']]['robot']
     # Load the robot configuration
     robot = RobotList.current_robot(params)
     print(TerminalFormatter.color_text(f"Starting {robot}", color='green'))
-
-    exec_command = f"ROS_DOMAIN_ID={robot.domain_id} {command} {robot.config_to_ros()} {' '.join(args)}"
+    # Check if the simulation tool is valid and get the command
+    command = "ros2 launch nanosaur_simulation nanosaur_bringup.launch.py"
+    ros_args = f"{robot.config_to_ros()} simulation_tool:={simulation_data['tool']}"
+    # Command to execute
+    exec_command = f"ROS_DOMAIN_ID={robot.domain_id} {command} {ros_args} {' '.join(args)}"
     # Print the command to be run
     print(exec_command)
 
@@ -273,7 +268,7 @@ def simulation_robot_start_debug(params, args):
         return False
 
 
-def simulation_start_debug(simulation_ws_path, simulation_tool, headless, world, isaac_sim_path, args=None):
+def simulation_start_debug(simulation_ws_path, simulation_tool, params, args=None):
     """Install the simulation tools."""
 
     bash_file = f'{simulation_ws_path}/install/setup.bash'
@@ -282,17 +277,9 @@ def simulation_start_debug(simulation_ws_path, simulation_tool, headless, world,
         print(TerminalFormatter.color_text("Workspace not built. Build before to debug", color='red'))
         return False
 
-    command = simulation_tools[simulation_tool]['simulator']
-    command += f" headless:={str(headless).lower()}"
-    # add isaac_sim_path if available
-    if isaac_sim_path:
-        command = f"{command} isaac_sim_path:={isaac_sim_path}"
-    # add world if available
-    if world:
-        command = f"{command} world:={world}"
-    # add additional arguments
-    if args:
-        command = f"{command} {' '.join(args)}"
+    cmd = simulation_tools[simulation_tool]
+    options = simulation_build_options(params, args)
+    command = f"{cmd} {options}"
     # Print the command to be run
     logger.debug(command)
     try:
@@ -348,9 +335,7 @@ def simulation_start(platform, params: Params, args):
     if selected_location == 'host':
         nanosaur_ws_path = workspace.get_workspace_path(params, 'ws_simulation_name')
         simulator_tool = simulation_data['tool']
-        headless = simulation_data.get('headless', False)
-        world = simulation_data.get('world', '')
-        return simulation_start_debug(nanosaur_ws_path, simulator_tool, headless, world, simulation_data.get('isaac_sim_path', None))
+        return simulation_start_debug(nanosaur_ws_path, simulator_tool, params)
     elif selected_location == 'docker':
         # Run from docker container
         return docker_simulator_start(platform, params, args)

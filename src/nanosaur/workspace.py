@@ -412,12 +412,7 @@ def debug(platform, params: utilities.Params, args):
             # Debug locally
             if selected_launcher == 'nanosaur':
                 return simulation_robot_start_debug(params, options)
-            # Get the simulation data from the parameters
-            simulation_data = params.get('simulation', {})
-            isaac_sim_path = simulation_data.get('isaac_sim_path', None)
-            headless = simulation_data.get('headless', False)
-            world = simulation_data.get('world', 'empty')
-            return simulation_start_debug(simulation_ws_path, selected_launcher, headless, world, isaac_sim_path, options)
+            return simulation_start_debug(simulation_ws_path, selected_launcher, params, options)
         elif selected_location == 'docker':
             # Set the volumes
             volumes = [
