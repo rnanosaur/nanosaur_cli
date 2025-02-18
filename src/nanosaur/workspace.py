@@ -470,6 +470,8 @@ def debug(platform, params: utilities.Params, args):
 
 def deploy(platform, params: utilities.Params, args):
     """ Deploy the workspace """
+    # determine the device type
+    device_type = "robot" if platform['Machine'] == 'aarch64' else "desktop"
     # Get the Nanosaur docker user
     nanosaur_docker_user = utilities.get_nanosaur_docker_user(params)
     # Get the Nanosaur version
@@ -524,8 +526,6 @@ def deploy(platform, params: utilities.Params, args):
 
     def deploy_perception(image_name):
         """ Deploy the perception workspace """
-        # determine the device type
-        device_type = "robot" if platform['Machine'] == 'aarch64' else "desktop"
         # Get the path to the perception workspace
         perception_ws_path = get_workspace_path(params, 'ws_perception_name')
         # Get the release tag name
@@ -569,9 +569,13 @@ def deploy(platform, params: utilities.Params, args):
     }
     if args.all and args.workspace is None:
         workspaces = get_workspaces_path(params)
-        workspace_actions = {k: v for k, v in workspace_actions.items() if k in workspaces}
+        # Deploy only the workspaces that exist
+        workspace_run = {k: v for k, v in workspace_actions.items() if k in workspaces}
+        # Always deploy the diagnostic workspace in a desktop environment
+        if params['mode'] in ['maintainer', 'Raffo']:
+            workspace_run['diagnostic'] = workspace_actions['diagnostic']
         print(TerminalFormatter.color_text("Deploying all workspaces", bold=True))
-        return all(action() for action in workspace_actions.values())
+        return all(action() for action in workspace_run.values())
     # Get the workspace
     workspace = get_selected_workspace(params, workspace_actions, args)
     if workspace is None:

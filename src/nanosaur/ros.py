@@ -368,10 +368,15 @@ def deploy_docker_isaac_ros(isaac_ros_ws_path, tags, release_tag_name, debug=Fal
     """
     # Define shared source path
     shared_path = os.path.join(get_nanosaur_home(), 'shared_src')
+    src_path = os.path.join(isaac_ros_ws_path, 'src')
+    # Check if src_path is not empty
+    if not os.listdir(src_path):
+        print(TerminalFormatter.color_text(f"Error: Source path {isaac_ros_ws_path} is empty.", color='red'))
+        return False
     # List of source folders to include in the workspace
     src_folders = [
         shared_path,
-        os.path.join(isaac_ros_ws_path, 'src')
+        src_path,
     ]
     ws_dir_list = '--ws-src ' + ' --ws-src '.join(src_folders)
     # Path to the Isaac ROS common package
