@@ -448,10 +448,13 @@ def debug(platform, params: utilities.Params, args):
             name=container_name, volumes=volumes
         )
 
+    # Get current robot running
+    robot = utilities.RobotList.current_robot(params)
+    # Build the workspace actions
     workspace_actions = {
-        'developer': lambda: ros.run_docker_isaac_ros(get_workspace_path(params, 'ws_developer_name')),
+        'developer': lambda: ros.run_docker_isaac_ros(get_workspace_path(params, 'ws_developer_name'), robot),
         'simulation': lambda: debug_simulation(params, args),
-        'perception': lambda: ros.run_docker_isaac_ros(get_workspace_path(params, 'ws_perception_name')),
+        'perception': lambda: ros.run_docker_isaac_ros(get_workspace_path(params, 'ws_perception_name'), robot),
         'diagnostic': lambda: debug_diagnostic(),
     }
     workspace = get_selected_workspace(params, workspace_actions, args)

@@ -38,7 +38,7 @@ import yaml
 import urllib.parse
 from python_on_whales import docker, DockerException
 from nanosaur.prompt_colors import TerminalFormatter
-from nanosaur.utilities import get_nanosaur_home
+from nanosaur.utilities import get_nanosaur_home, Robot
 from git import Repo, GitCommandError
 
 # Set up the logger
@@ -59,7 +59,7 @@ def run_docker_ros(docker_image):
     docker.run(docker_image, command="bash")
 
 
-def run_docker_isaac_ros(workspace_path, auto_commands=[]):
+def run_docker_isaac_ros(workspace_path: str, robot: Robot, auto_commands=[]):
     nanosaur_home_path = get_nanosaur_home()
     # Path to the Isaac ROS common package
     isaac_ros_common_path = os.path.join(nanosaur_home_path, ISAAC_ROS_COMMON_FOLDER)
@@ -67,8 +67,8 @@ def run_docker_isaac_ros(workspace_path, auto_commands=[]):
     # Path to the script you want to run
     command = "./scripts/run_dev.sh"
     # Build the command arguments
+    # TODO: Add commands '-a', f"-e NANOSAUR_COMMANDS={robot.config_to_ros()}"
     args = ["-d", workspace_path, '-a', f"-v {nanosaur_home_path}/shared_src:/workspaces/shared_src"]
-
     # Get the path to the Isaac ROS common package
     os.chdir(isaac_ros_common_path)
     logger.debug(f"Changed directory to: {isaac_ros_common_path}")
