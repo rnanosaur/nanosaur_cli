@@ -318,7 +318,7 @@ def update(platform, params: utilities.Params, args):
 
 
 @utilities.require_sudo_password
-def build(platform, params: utilities.Params, args, password=None):
+def build(platform, params: utilities.Params, args):
     """ Build the workspace """
     # Get the nanosaur version
     nanosaur_version = get_nanosaur_version(params)
@@ -328,11 +328,12 @@ def build(platform, params: utilities.Params, args, password=None):
 
     def get_build_action(workspace_name_key):
         workspace_path = get_workspace_path(params, workspace_name_key)
+        shared_src_path = get_shared_workspace_path()
         if not workspace_path:
             return False
         print(TerminalFormatter.color_text(f"- Install all dependencies on workspace {workspace_path}", bold=True))
         ros2_path = ros.get_ros2_path(ros_distro_name)
-        if not ros.run_rosdep(ros2_path, workspace_path, password):
+        if not ros.run_rosdep(ros2_path, workspace_path, shared_src_path):
             print(TerminalFormatter.color_text("Failed to install dependencies", color='red'))
             return False
         print(TerminalFormatter.color_text(f"- Build workspace {workspace_path}", bold=True))

@@ -259,40 +259,40 @@ def run_vcs_import(workspace_path, rosinstall_path, src_folder="src") -> bool:
         return False
 
 
-def run_rosdep(ros2_path, folder_path, password) -> bool:
-    if password is None:
-        print(TerminalFormatter.color_text("Error: No password provided.", color='red'))
-        return False
-    result = False
+def run_rosdep(ros2_path, folder_path, shared_src_path) -> bool:
     try:
         ros2_setup_path = os.path.join(ros2_path, 'setup.bash')
-        child = pexpect.spawn(f"bash -c 'source {ros2_setup_path} && rosdep install --from-paths {folder_path}/src --ignore-src -r -y'", encoding='utf-8', timeout=None)
-        # Stream all command output to the terminal in real time
-        child.logfile = sys.stdout
-        # Wait for password prompt with timeout
-        index = child.expect(
-            ['password for', pexpect.EOF, pexpect.TIMEOUT], timeout=30)
-        if index == 0:
-            child.logfile = None  # Disable logging to hide password
-            child.sendline(password)
-            child.logfile = sys.stdout  # Re-enable logging
-            # Wait for completion
-            child.expect(pexpect.EOF, timeout=300)
-            result = True
-        elif index == 1:  # Command finished without password prompt
-            print("Command finished without asking for a password.")
-            result = True
-        elif index == 2:  # Timeout
-            print(TerminalFormatter.color_text("Error: Sudo prompt timed out. Please try again.", color='red'))
-            result = False
-    except pexpect.ExceptionPexpect as e:
-        print(TerminalFormatter.color_text(f"Error running rosdep: {str(e)}", color='red'))
-        result = False
-    finally:
-        # Ensure the process is closed
-        if child.isalive():
-            child.close()
-    return result
+        command = f"source {ros2_setup_path} && rosdep install --from-paths {folder_path}/src {shared_src_path} --ignore-src -r -y"
+        process = subprocess.Popen(
+            command,
+            shell=True,
+            executable="/bin/bash",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        # Stream output live
+        for line in process.stdout:
+            print(line.decode('utf-8'), end="")  # Print stdout line-by-line
+
+        # Wait for the process to finish
+        process.wait()
+
+        # Stream any errors
+        for line in process.stderr:
+            print(TerminalFormatter.color_text(line.decode('utf-8'), color='red'), end="")  # Print stderr (errors) in red
+
+        # Check the exit status of the command
+        if process.returncode != 0:
+            print(TerminalFormatter.color_text(process.returncode, color='red'))
+            return False
+        else:
+            print(TerminalFormatter.color_text("Command completed successfully", color='green'))
+            return True
+
+    except Exception as e:
+        print(f"An error occurred while running the rosdep command: {e}")
+        return False
 
 
 def run_colcon_build(ros2_path, folder_path) -> bool:

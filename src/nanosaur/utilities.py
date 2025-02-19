@@ -28,6 +28,8 @@ import copy
 import yaml
 import pexpect
 import getpass
+import subprocess
+from functools import wraps
 import requests
 import logging
 import nanosaur.variables as nsv
@@ -472,34 +474,21 @@ def require_sudo(func):
 
 
 def require_sudo_password(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
-        child = None
         try:
-            # Get password
-            print(TerminalFormatter.color_text("This function require user password to be executed.", color='yellow'))
-            # Get the username
-            username = os.getlogin()
-            # Get the password
-            password = getpass.getpass(prompt=f'{TerminalFormatter.color_text("[sudo]", bold=True)} password for {username}: ')
-            # Test if the sudo password is valid
-            child = pexpect.spawn("sudo -v")
-            child.expect("password for")
-            child.sendline(password)
-            index = child.expect([pexpect.EOF, pexpect.TIMEOUT], timeout=10)
-            if index != 0:  # Password not accepted
-                print("Error: Incorrect sudo password. Please try again.")
-                return False
-            # Execute function with password
-            return func(*args, password=password, **kwargs)
-        except Exception as e:
-            print(f"Validation error: {e}")
-            return False
-        except KeyboardInterrupt:
-            print(TerminalFormatter.color_text("Exiting...", color='yellow'))
-            return False
-        finally:
-            if child is not None:
-                child.close()
+            subprocess.run(["sudo", "-v"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError:
+            password = getpass.getpass("Enter your sudo password: ")
+            proc = subprocess.Popen(["sudo", "-S", "-v"],
+                                    stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+            out, err = proc.communicate(password.encode() + b'\n')
+            if proc.returncode != 0:
+                print("Failed to authenticate sudo.")
+                return
+        return func(*args, **kwargs)
     return wrapper
 
 
