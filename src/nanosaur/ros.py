@@ -416,7 +416,7 @@ def deploy_docker_isaac_ros(isaac_ros_ws_path, tags, release_tag_name, push=Fals
             print(TerminalFormatter.color_text(f"Command failed with return code: {process.returncode}", color='red'))
             return False
         else:
-            print(TerminalFormatter.color_text("Command completed successfully", color='green'))        
+            print(TerminalFormatter.color_text("Command completed successfully", color='green'))
     except KeyboardInterrupt:
         print(TerminalFormatter.color_text("Process interrupted by user", color='red'))
         process.terminate()
@@ -430,7 +430,7 @@ def deploy_docker_isaac_ros(isaac_ros_ws_path, tags, release_tag_name, push=Fals
         print(TerminalFormatter.color_text(f"Tagging Docker image with release version: {release_tag_name}-{release}", color='magenta', bold=True))
         # Tag the image with the release version
         docker.tag(release_tag_name, f"{release_tag_name}-{release}")
-    
+
     if push:
         try:
             # Push the Docker image to the registry
@@ -448,6 +448,7 @@ def deploy_docker_isaac_ros(isaac_ros_ws_path, tags, release_tag_name, push=Fals
             return False
 
     return True
+
 
 def manage_isaac_ros_common_repo(nanosaur_home_path: str, isaac_ros_branch: str, force) -> bool:
     # Path to the Isaac ROS common package
