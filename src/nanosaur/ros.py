@@ -25,7 +25,6 @@
 
 import os
 import sys
-import pexpect
 import subprocess
 import pty
 import select

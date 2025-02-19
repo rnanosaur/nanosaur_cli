@@ -26,7 +26,6 @@
 import os
 import copy
 import yaml
-import pexpect
 import getpass
 import subprocess
 from functools import wraps
