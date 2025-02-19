@@ -35,7 +35,7 @@ from jtop import jtop, JtopException
 from nanosaur import __version__
 import nanosaur.variables as nsv
 from nanosaur.logger_config import setup_logger
-from nanosaur.docker import docker_info, is_docker_installed, docker_robot_start, docker_robot_stop
+from nanosaur.docker import docker_info, docker_version_info, is_docker_installed, docker_robot_start, docker_robot_stop
 from nanosaur.robot import parser_robot_menu, wizard
 from nanosaur.simulation import parser_simulation_menu, simulation_info
 from nanosaur.swarm import parser_swarm_menu
@@ -111,6 +111,9 @@ def info(platform, params: Params, args):
     if 'ws_debug' in params:
         debug_string = TerminalFormatter.color_text(f"{params['ws_debug']}", color="yellow", bold=True)
         print(f"{TerminalFormatter.color_text('Default debug: ', bold=True)} {debug_string}")
+    # Print Docker information
+    print()
+    docker_info(params, args.verbose)
     # Load the robot list
     robot_list = RobotList.load(params)
     robot_idx = params.get('robot_idx', 0)
@@ -137,8 +140,8 @@ def info(platform, params: Params, args):
         print(TerminalFormatter.color_text("\nPlatform Information:", bold=True))
         for key, value in platform.items():
             print(f"   {TerminalFormatter.color_text(key, bold=True)}: {value}")
-        # Print Docker info
-        docker_info(platform)
+        # Print Docker version information
+        docker_version_info(platform)
         if hardware:
             print(TerminalFormatter.color_text("\nHardware Information:", bold=True))
             # Print specific hardware information

@@ -30,12 +30,69 @@ import subprocess
 from python_on_whales import docker, DockerClient, DockerException
 from nanosaur.utilities import Params, RobotList, get_nanosaur_home, build_env_file
 from nanosaur.prompt_colors import TerminalFormatter
+from datetime import datetime
 
 # Set up the logger
 logger = logging.getLogger(__name__)
 
 
-def docker_info(platform):
+def format_time_delta(delta):
+    if delta.days > 0:
+        return f"{delta.days} days ago"
+    hours, remainder = divmod(delta.seconds, 3600)
+    if hours > 0:
+        return f"{hours} hours ago"
+    minutes, _ = divmod(remainder, 60)
+    if minutes > 0:
+        return f"{minutes} minutes ago"
+    return "just now"
+
+
+def docker_info(params, verbose):
+    """Display information about running Docker services."""
+    nanosaur_home_path = get_nanosaur_home()
+    robot = RobotList.current_robot(params)
+    docker_compose_path = os.path.join(nanosaur_home_path, "docker-compose.yml")
+    env_file_path = os.path.join(nanosaur_home_path, f'{robot.name}.env')
+    nanosaur_compose = DockerClient(compose_files=[docker_compose_path], compose_env_files=[env_file_path])
+
+    # Get the list of all services, including stopped ones
+    running_services = nanosaur_compose.compose.ps(all=True)
+    if not running_services:
+        print(TerminalFormatter.color_text("No services are currently running.", bold=True))
+        return
+
+    print(TerminalFormatter.color_text("Running services:", bold=True))
+    for service in running_services:
+        # Map the service status to an emoji
+        status_emoji = {
+            "running": "✅",
+            "restarting": "🔄",
+            "paused": "⏸️",
+            "dead": "💀"
+        }.get(service.state.status, "❌")
+
+        # Calculate the time since the service was started
+        started_at = datetime.now(service.state.started_at.tzinfo) - service.state.started_at
+        started_at_str = format_time_delta(started_at)
+
+        # Calculate the time since the service was finished, if applicable
+        finished_at_str = "N/A"
+        if service.state.finished_at:
+            finished_at = datetime.now(service.state.finished_at.tzinfo) - service.state.finished_at
+            finished_at_str = format_time_delta(finished_at)
+
+        # Determine the time status based on whether the service is running
+        if service.state.status == "running":
+            time_status = f"{TerminalFormatter.color_text('Created: ', bold=True)} {started_at_str}"
+        else:
+            time_status = f"{TerminalFormatter.color_text('Finished:', bold=True)} {finished_at_str}"
+
+        # Print the service information
+        print(f"  - [{status_emoji}] {TerminalFormatter.color_text('Service:', bold=True)} {service.name:<35} {time_status}")
+
+
+def docker_version_info(platform):
     """Print Docker information."""
     # Print docker information
     version_info = docker.version()
