@@ -43,9 +43,7 @@ def format_time_delta(delta):
     if hours > 0:
         return f"{hours} hours ago"
     minutes, _ = divmod(remainder, 60)
-    if minutes > 0:
-        return f"{minutes} minutes ago"
-    return "just now"
+    return f"{minutes} minutes ago" if minutes > 0 else "just now"
 
 
 def docker_info(params, verbose):
