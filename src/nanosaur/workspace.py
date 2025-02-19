@@ -469,7 +469,7 @@ def debug(platform, params: utilities.Params, args):
     return False
 
 
-def deploy(platform, params: utilities.Params, args):
+def deploy(platform, params: utilities.Params, args, push=False, release=None):
     """ Deploy the workspace """
     # determine the device type
     device_type = "robot" if platform['Machine'] == 'aarch64' else "desktop"
@@ -509,19 +509,19 @@ def deploy(platform, params: utilities.Params, args):
             if image == 'gazebo':
                 tag_image = f"{nanosaur_docker_user}/simulation:gazebo"
                 dockerfile_path = f"{nanosaur_simulation_path}/Dockerfile.gazebo"
-                if not ros.deploy_docker_image(dockerfile_path, tag_image):
+                if not ros.deploy_docker_image(dockerfile_path, tag_image, push=push, release=release):
                     return False
             # Build Isaac Sim docker
             if image == 'isaac-sim':
                 tag_image = f"{nanosaur_docker_user}/simulation:isaac-sim"
                 dockerfile_path = f"{nanosaur_simulation_path}/Dockerfile.isaac-sim"
-                if not ros.deploy_docker_image(dockerfile_path, tag_image):
+                if not ros.deploy_docker_image(dockerfile_path, tag_image, push=push, release=release):
                     return False
             # Build the Docker image for nanosaur bridge
             if image == 'nanosaur':
                 tag_image = f"{nanosaur_docker_user}/nanosaur:simulation"
                 dockerfile_path = f"{nanosaur_simulation_path}/Dockerfile.nanosaur"
-                if not ros.deploy_docker_image(dockerfile_path, tag_image):
+                if not ros.deploy_docker_image(dockerfile_path, tag_image, push=push, release=release):
                     return False
         return True
 
@@ -539,12 +539,12 @@ def deploy(platform, params: utilities.Params, args):
                 # Create the tags for the docker image
                 tags = [isaac_ros_distro_name, camera, nsv.NANOSAUR_DOCKERFILE_SUFFIX]
                 # Deploy the perception workspace for each camera
-                if not ros.deploy_docker_isaac_ros(perception_ws_path, tags, f"{release_tag_name}:{camera}"):
+                if not ros.deploy_docker_isaac_ros(perception_ws_path, tags, f"{release_tag_name}:{camera}", push=push, release=release):
                     return False
         if device_type == "desktop":
             # Deploy the perception workspace for simulation
             tags = [isaac_ros_distro_name, nsv.NANOSAUR_DOCKERFILE_SUFFIX]
-            if not ros.deploy_docker_isaac_ros(perception_ws_path, tags, f"{release_tag_name}:simulation"):
+            if not ros.deploy_docker_isaac_ros(perception_ws_path, tags, f"{release_tag_name}:simulation", push=push, release=release):
                 return False
         return True
 
@@ -554,10 +554,9 @@ def deploy(platform, params: utilities.Params, args):
         # Define tag image name and dockerfile path
         tag_image = f"{nanosaur_docker_user}/nanosaur:diagnostic"
         dockerfile_path = f"{shared_path}/Dockerfile"
-        platforms = ["linux/amd64", "linux/arm64"] if device_type == "desktop" else None
-        # TODO: Add a way to verify if the desktop allow multi-platform build
+        platforms = ["linux/amd64", "linux/arm64"] if device_type == "desktop" and push else None
         # Deploy the diagnostic workspace to the docker image for both platforms
-        return ros.deploy_docker_image(dockerfile_path, tag_image, platforms=platforms)
+        return ros.deploy_docker_image(dockerfile_path, tag_image, platforms=platforms, push=push, release=release)
 
     # Get the deploy action
     workspace_actions = {

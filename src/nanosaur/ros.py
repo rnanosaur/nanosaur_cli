@@ -334,16 +334,21 @@ def run_colcon_build(ros2_path, folder_path) -> bool:
         return False
 
 
-def deploy_docker_image(dockerfile_path, tag_image, platforms=None) -> bool:
+def deploy_docker_image(dockerfile_path, tag_image, platforms=None, push=False, release=None) -> bool:
     try:
         print(TerminalFormatter.color_text(f"Building Docker image {tag_image}", color='magenta', bold=True))
+        if release:
+            print(TerminalFormatter.color_text(f"- for release: {tag_image}-{release}", color='magenta', bold=True))
         if platforms:
             print(TerminalFormatter.color_text(f"- for platforms: {platforms}", color='magenta', bold=True))
+        if push:
+            print(TerminalFormatter.color_text("- and pushing to the registry", color='magenta', bold=True))
         docker.build(
             get_nanosaur_home(),
             file=dockerfile_path,
-            tags=tag_image,
+            tags=[tag_image, f"{tag_image}-{release}"] if release else [tag_image],
             platforms=platforms,
+            push=push,   # Required for multi-platform builds
         )
         print(TerminalFormatter.color_text("Docker image built successfully", color='green'))
         return True
@@ -352,7 +357,7 @@ def deploy_docker_image(dockerfile_path, tag_image, platforms=None) -> bool:
         return False
 
 
-def deploy_docker_isaac_ros(isaac_ros_ws_path, tags, release_tag_name, debug=False) -> bool:
+def deploy_docker_isaac_ros(isaac_ros_ws_path, tags, release_tag_name, push=False, release=None, debug=False) -> bool:
     """
     Deploys the Isaac ROS Docker image.
 
@@ -389,6 +394,10 @@ def deploy_docker_isaac_ros(isaac_ros_ws_path, tags, release_tag_name, debug=Fal
 
     try:
         print(TerminalFormatter.color_text(f"Deploying {release_tag_name}", color='magenta', bold=True))
+        if release:
+            print(TerminalFormatter.color_text(f"- for release: {release_tag_name}-{release}", color='magenta', bold=True))
+        if push:
+            print(TerminalFormatter.color_text("- and pushing to the registry", color='magenta', bold=True))
         # Run the command and stream the output live
         process = subprocess.Popen(
             command,
@@ -407,8 +416,7 @@ def deploy_docker_isaac_ros(isaac_ros_ws_path, tags, release_tag_name, debug=Fal
             print(TerminalFormatter.color_text(f"Command failed with return code: {process.returncode}", color='red'))
             return False
         else:
-            print(TerminalFormatter.color_text("Command completed successfully", color='green'))
-            return True
+            print(TerminalFormatter.color_text("Command completed successfully", color='green'))        
     except KeyboardInterrupt:
         print(TerminalFormatter.color_text("Process interrupted by user", color='red'))
         process.terminate()
@@ -418,6 +426,28 @@ def deploy_docker_isaac_ros(isaac_ros_ws_path, tags, release_tag_name, debug=Fal
         print(f"An error occurred while running the command: {e}")
         return False
 
+    if release:
+        print(TerminalFormatter.color_text(f"Tagging Docker image with release version: {release_tag_name}-{release}", color='magenta', bold=True))
+        # Tag the image with the release version
+        docker.tag(release_tag_name, f"{release_tag_name}-{release}")
+    
+    if push:
+        try:
+            # Push the Docker image to the registry
+            print(TerminalFormatter.color_text(f"Pushing Docker image {release_tag_name}", color='magenta', bold=True))
+            docker.push(release_tag_name)
+            if release:
+                print(TerminalFormatter.color_text(f"Pushing docker image: {release_tag_name}-{release}", color='magenta', bold=True))
+                docker.push(f"{release_tag_name}-{release}")
+            print(TerminalFormatter.color_text("Docker image pushed successfully", color='green'))
+        except DockerException as e:
+            print(TerminalFormatter.color_text(f"Error pushing Docker image: {e}", color='red'))
+            return False
+        except KeyboardInterrupt:
+            print(TerminalFormatter.color_text("Process interrupted by user", color='red'))
+            return False
+
+    return True
 
 def manage_isaac_ros_common_repo(nanosaur_home_path: str, isaac_ros_branch: str, force) -> bool:
     # Path to the Isaac ROS common package
