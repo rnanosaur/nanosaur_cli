@@ -59,9 +59,12 @@ def docker_info(params, verbose):
     # Get the list of all services, including stopped ones
     running_services = nanosaur_compose.compose.ps(all=True)
     if not running_services:
-        print(TerminalFormatter.color_text("No services are currently running.", bold=True))
+        if verbose:
+            print()
+            print(TerminalFormatter.color_text("No services are currently running.", bold=True))
         return
 
+    print()
     print(TerminalFormatter.color_text("Running services:", bold=True))
     for service in running_services:
         # Map the service status to an emoji

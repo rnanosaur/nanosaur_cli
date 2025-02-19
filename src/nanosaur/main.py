@@ -112,7 +112,6 @@ def info(platform, params: Params, args):
         debug_string = TerminalFormatter.color_text(f"{params['ws_debug']}", color="yellow", bold=True)
         print(f"{TerminalFormatter.color_text('Default debug: ', bold=True)} {debug_string}")
     # Print Docker information
-    print()
     docker_info(params, args.verbose)
     # Load the robot list
     robot_list = RobotList.load(params)
