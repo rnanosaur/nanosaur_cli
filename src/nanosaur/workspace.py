@@ -708,7 +708,7 @@ def create_simple(platform, params: utilities.Params, args) -> bool:
     return utilities.download_file(url, nanosaur_home_path, docker_compose, force=args.force) is not None
 
 
-def create_developer_workspace(platform, params: utilities.Params, args, password=None) -> bool:
+def create_developer_workspace(platform, params: utilities.Params, args) -> bool:
     # Create the Nanosaur home folder
     create_simple(platform, params, args)
     # Create the Nanosaur home folder
@@ -726,7 +726,7 @@ def create_developer_workspace(platform, params: utilities.Params, args, passwor
     return True
 
 
-def create_maintainer_workspace(platform, params: utilities.Params, args, password=None) -> bool:
+def create_maintainer_workspace(platform, params: utilities.Params, args) -> bool:
     # Get the nanosaur version
     nanosaur_version = params.get('nanosaur_version', nsv.NANOSAUR_CURRENT_DISTRO)
     params['nanosaur_version'] = nanosaur_version
