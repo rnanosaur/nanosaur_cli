@@ -114,14 +114,14 @@ def info(platform, params: Params, args):
         status = 'available' if internet_connection else 'not available'
         color = 'green' if internet_connection else 'red'
         print(f"{TerminalFormatter.color_text('Internet connection:', bold=True)} {TerminalFormatter.color_text(status, color=color)}")
-    
+
     version_str = installed_version
     if internet_connection:
         if installed_version < latest_version:
             version_str = f"{installed_version} {TerminalFormatter.color_text(f'(Update available: {latest_version})', color='yellow')}"
         else:
             version_str = f"{installed_version} {TerminalFormatter.color_text('(up to date)', color='green', bold=True)}"
-    
+
     print(f"{TerminalFormatter.color_text('Nanosaur-CLI Version:', bold=True)} {version_str}")
     requirements_info(params, args.verbose)
     # Print mode if it exists in params
@@ -249,7 +249,7 @@ def release_control(platform, params: Params, args):
 
 
 def update(platform, params: Params, args):
-    
+
     package_name = 'nanosaur'
 
     def prompt_user(message):
@@ -275,7 +275,6 @@ def update(platform, params: Params, args):
             subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", package_name])
     else:
         print(TerminalFormatter.color_text(f"{package_name} is already up to date ({installed_version}).", color='green', bold=True))
-
 
     if prompt_user("Do you want to pull all Docker images?"):
         print(TerminalFormatter.color_text("Pulling all Docker images...", bold=True))
