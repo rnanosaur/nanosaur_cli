@@ -418,7 +418,7 @@ def simulation_set(platform, params: Params, args):
     # Save the selected simulation tool
     simulation_data['location'] = answers['location']
     simulation_data['tool'] = answers['tool'].lower()
-    
+
     if answers['location'] == 'host':
         if simulation_data['tool'] == 'isaac-sim' and answers['isaac-sim'] is not None:
             if answers['isaac-sim'] == "Custom Path":
