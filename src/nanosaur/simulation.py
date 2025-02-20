@@ -32,6 +32,7 @@ import argparse
 import subprocess
 import logging
 import nanosaur.variables as nsv
+from nanosaur.ros import get_ros2_path
 from nanosaur import workspace
 from nanosaur.docker import docker_simulator_start
 from nanosaur.prompt_colors import TerminalFormatter
@@ -316,10 +317,6 @@ def simulation_start_debug(simulation_ws_path, simulation_tool, params, args=Non
 
 
 def simulation_start(platform, params: Params, args):
-    # Get location starting function (host or docker)
-    selected_location = workspace.get_starting_location(params)
-    if selected_location is None:
-        return False
     # Get the simulation data from the parameters
     simulation_data = params.get('simulation', {})
     # Check which simulation tool is selected
@@ -334,6 +331,7 @@ def simulation_start(platform, params: Params, args):
     if simulation_data['tool'] == 'isaac-sim' and 'isaac_sim_path' not in simulation_data:
         print(TerminalFormatter.color_text("No Isaac Sim version selected. Please run simulation set first.", color='red'))
         return False
+    selected_location = simulation_data['location']
     # Check if the debug mode is enabled
     if selected_location == 'host':
         nanosaur_ws_path = workspace.get_workspace_path(params, 'ws_simulation_name')
@@ -349,6 +347,10 @@ def simulation_start(platform, params: Params, args):
 
 def simulation_set(platform, params: Params, args):
     """Set the simulation tools."""
+    # Get the nanosaur version
+    nanosaur_version = params['nanosaur_version']
+    # Get the ROS distro name
+    ros_distro_name = nsv.NANOSAUR_DISTRO_MAP[nanosaur_version]['ros']
     # Get the current simulation tool
     simulation_data = params.get('simulation', {})
     current_tool = simulation_data.get('tool', None)
@@ -368,12 +370,27 @@ def simulation_set(platform, params: Params, args):
     if not simulation_tools:
         print(TerminalFormatter.color_text("No simulation tools available. Please install a simulator first.", color='red'))
         return False
+    # check debug mode
+    debug_mode = None
+    if 'ws_debug' in params:
+        debug_mode = params['ws_debug']
+        print(TerminalFormatter.color_text(f"Default debug mode: {debug_mode}", color='yellow'))
+    # Get the ROS 2 installation path if available
+    ros2_installed = get_ros2_path(ros_distro_name)
+    debug_mode = 'docker' if ros2_installed is None else debug_mode
     # Get the Isaac Sim version required for the selected Nanosaur version
     isaac_sim_required = nsv.NANOSAUR_DISTRO_MAP[params['nanosaur_version']]['isaac_sim']
     # Filter the list with only the valid Isaac Sim versions
     isaac_sim_list = {ver: path for ver, path in isaac_sim_list.items() if validate_isaac_sim(path, isaac_sim_required)}
     # Ask the user to select a simulation tool
     questions = [
+        inquirer.List(
+            'location',
+            message="Run locally or on docker?",
+            choices=['docker', 'host'],
+            default=simulation_data.get('location', debug_mode),
+            ignore=lambda answers: debug_mode,
+        ),
         inquirer.List(
             'tool',
             message="Set the simulation tools",
@@ -385,7 +402,7 @@ def simulation_set(platform, params: Params, args):
             message="Select Isaac Sim version for run on host",
             choices=list(isaac_sim_list.keys()) + ["Custom Path"],
             default=current_version,
-            ignore=lambda answers: answers['tool'] != 'Isaac-sim' or not isaac_sim_list
+            ignore=lambda answers: answers['tool'] != 'Isaac-sim' or not isaac_sim_list or answers['location'] == 'docker' or debug_mode == 'docker'
         ),
         inquirer.Path(
             'custom_isaac_sim_path',
@@ -399,22 +416,24 @@ def simulation_set(platform, params: Params, args):
     if answers is None:
         return False
     # Save the selected simulation tool
+    simulation_data['location'] = answers['location']
     simulation_data['tool'] = answers['tool'].lower()
-    if simulation_data['tool'] == 'isaac-sim' and answers['isaac-sim'] is not None:
-        if answers['isaac-sim'] == "Custom Path":
-            if version := check_isaac_sim(answers['custom_isaac_sim_path']):
-                if validate_isaac_sim(answers['custom_isaac_sim_path'], isaac_sim_required):
-                    print(TerminalFormatter.color_text(f"Selected Isaac Sim version: {version}", color='green'))
+    
+    if answers['location'] == 'host':
+        if simulation_data['tool'] == 'isaac-sim' and answers['isaac-sim'] is not None:
+            if answers['isaac-sim'] == "Custom Path":
+                if version := check_isaac_sim(answers['custom_isaac_sim_path']):
+                    if validate_isaac_sim(answers['custom_isaac_sim_path'], isaac_sim_required):
+                        print(TerminalFormatter.color_text(f"Selected Isaac Sim version: {version}", color='green'))
+                    else:
+                        print(TerminalFormatter.color_text(f"Isaac Sim {version} not tested for this nanosaur version", color='yellow'))
+                    simulation_data['isaac_sim_path'] = answers['custom_isaac_sim_path']
                 else:
-                    print(TerminalFormatter.color_text(f"Isaac Sim {version} not tested for this nanosaur version", color='yellow'))
-                simulation_data['isaac_sim_path'] = answers['custom_isaac_sim_path']
+                    print(TerminalFormatter.color_text("Invalid Isaac Sim path", color='red'))
+                    return False
             else:
-                print(TerminalFormatter.color_text("Invalid Isaac Sim path", color='red'))
-                return False
-        else:
-            print(TerminalFormatter.color_text(f"Selected Isaac Sim version: {answers['isaac-sim']}", color='green'))
-            simulation_data['isaac_sim_path'] = isaac_sim_list[answers['isaac-sim']]
-
+                print(TerminalFormatter.color_text(f"Selected Isaac Sim version: {answers['isaac-sim']}", color='green'))
+                simulation_data['isaac_sim_path'] = isaac_sim_list[answers['isaac-sim']]
     else:
         print(TerminalFormatter.color_text(f"Selected {answers['tool']}", color='green'))
     # Store the new simulation data
