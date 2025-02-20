@@ -5,8 +5,16 @@
 ### Features
 
 - Redesign the simulation tool
-- New diagnostic docker
+- New diagnostic docker multi-platform
 - Added new function in `nanosaur robot terminal` to launch a terminal from docker
+- Added new function in `nanosaur robot world` to select a world to load
+- Improve `nanosaur info` now show all services if are running
+- Added new function `nanosaur update` that update the `nanosaur-cli` and pull all latest docker images
+- Improve `nanosaur ws deploy` with hidden commands to push and build a release
+
+### Fixes
+
+- Improve `sudo` request for `nanosaur ws build`
 
 ## [0.1.3] - 2025-02-15
 
