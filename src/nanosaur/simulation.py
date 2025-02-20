@@ -185,6 +185,9 @@ def simulation_info(platform, params: Params, verbose):
                     isaac_sim_version = vf.read().strip().split('-')[0]  # Read the version from the VERSION file and cut after the first '-'
         text_message = f"{TerminalFormatter.color_text('   selected:', bold=True)} {simulation_data['tool']} {isaac_sim_version}"
         print(text_message)
+        world_md = simulation_data.get('world', 'empty')
+        world_string = TerminalFormatter.color_text(world_md, color='cyan')
+        print(f"{TerminalFormatter.color_text('   World:', bold=True)} {world_string}")
         headless_md = simulation_data.get('headless', False)
         headless_string = TerminalFormatter.color_text('enabled', color='green') if headless_md else TerminalFormatter.color_text('disabled', color='red')
         print(f"{TerminalFormatter.color_text('   Headless mode:', bold=True)} {headless_string}")
