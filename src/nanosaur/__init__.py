@@ -31,7 +31,7 @@ __cr__ = "(c) 2025, RB"
 __copyright__ = "(c) 2025, Raffaello Bonghi"
 # Version package
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/#choosing-a-versioning-scheme
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 from .main import install  # noqa: F401
 from .ros import rosinstall_reader  # noqa: F401

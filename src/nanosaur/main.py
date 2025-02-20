@@ -29,19 +29,28 @@ import argcomplete
 import sys
 import inquirer
 import logging
+
+import subprocess
 from inquirer.themes import GreenPassion
 from jtop import jtop, JtopException
 
 from nanosaur import __version__
 import nanosaur.variables as nsv
 from nanosaur.logger_config import setup_logger
-from nanosaur.docker import docker_info, docker_version_info, is_docker_installed, docker_robot_start, docker_robot_stop
+from nanosaur.docker import (
+    docker_info,
+    docker_version_info,
+    is_docker_installed,
+    docker_robot_start,
+    docker_robot_stop,
+    docker_pull_images
+)
 from nanosaur.robot import parser_robot_menu, wizard
 from nanosaur.simulation import parser_simulation_menu, simulation_info
 from nanosaur.swarm import parser_swarm_menu
 from nanosaur.prompt_colors import TerminalFormatter
 from nanosaur.ros import get_ros2_path
-from nanosaur.utilities import Params, RobotList, package_info
+from nanosaur.utilities import Params, RobotList, package_info, has_internet_connection, get_latest_version
 from nanosaur.workspace import (
     get_nanosaur_version,
     workspaces_info,
@@ -93,11 +102,27 @@ hardware = {}
 def info(platform, params: Params, args):
     """Print version information."""
     device_type = "robot" if platform['Machine'] == 'aarch64' else "desktop"
+    internet_connection = has_internet_connection()
+    if internet_connection:
+        latest_version = get_latest_version("nanosaur")
+    installed_version = __version__
     # Print version information
     package_info(params, args.verbose)
     # Requirements information
     print()
-    print(f"{TerminalFormatter.color_text('Nanosaur-CLI Version:', bold=True)} {__version__}")
+    if args.verbose:
+        status = 'available' if internet_connection else 'not available'
+        color = 'green' if internet_connection else 'red'
+        print(f"{TerminalFormatter.color_text('Internet connection:', bold=True)} {TerminalFormatter.color_text(status, color=color)}")
+    
+    version_str = installed_version
+    if internet_connection:
+        if installed_version < latest_version:
+            version_str = f"{installed_version} {TerminalFormatter.color_text(f'(Update available: {latest_version})', color='yellow')}"
+        else:
+            version_str = f"{installed_version} {TerminalFormatter.color_text('(up to date)', color='green', bold=True)}"
+    
+    print(f"{TerminalFormatter.color_text('Nanosaur-CLI Version:', bold=True)} {version_str}")
     requirements_info(params, args.verbose)
     # Print mode if it exists in params
     if 'mode' in params:
@@ -223,6 +248,43 @@ def release_control(platform, params: Params, args):
     return True
 
 
+def update(platform, params: Params, args):
+    
+    package_name = 'nanosaur'
+
+    def prompt_user(message):
+        """Prompt the user for confirmation."""
+        questions = [inquirer.Confirm('confirm', message=message, default=True)]
+        answers = inquirer.prompt(questions, theme=GreenPassion())
+        return answers['confirm'] if answers else False
+
+    if not has_internet_connection():
+        print(TerminalFormatter.color_text("No internet connection", color='red'))
+        return False
+
+    installed_version = __version__
+    latest_version = get_latest_version(package_name)
+
+    if installed_version is None:
+        if prompt_user(f"{package_name} is not installed. Install now?"):
+            print(TerminalFormatter.color_text(f"Installing {package_name}...", bold=True))
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
+    elif installed_version < latest_version:
+        if prompt_user(f"Update {package_name} from {installed_version} to {latest_version}?"):
+            print(TerminalFormatter.color_text(f"Updating {package_name} from {installed_version} to {latest_version}...", bold=True))
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", package_name])
+    else:
+        print(TerminalFormatter.color_text(f"{package_name} is already up to date ({installed_version}).", color='green', bold=True))
+
+
+    if prompt_user("Do you want to pull all Docker images?"):
+        print(TerminalFormatter.color_text("Pulling all Docker images...", bold=True))
+        if docker_pull_images(params):
+            print(TerminalFormatter.color_text("Docker images pulled successfully", color='green'))
+
+    return True
+
+
 def nanosaur_wake_up(platform, params: Params, args):
     args.detach = False
     # Get the simulation data from the parameters
@@ -322,6 +384,10 @@ def main():
         parser_release = subparsers.add_parser('release', help=f"Control the release version [{nanosaur_version_str}]")
         parser_release.add_argument('name', type=str, nargs='?', help="Specify the release name")
         parser_release.set_defaults(func=release_control)
+
+    if 'mode' in params:
+        parser_update = subparsers.add_parser('update', help="Update nanosaur to the latest version")
+        parser_update.set_defaults(func=update)
 
     # Subcommand: workspace (with a sub-menu for workspace operations)
     if get_workspaces_path(params):

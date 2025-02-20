@@ -31,6 +31,8 @@ import subprocess
 from functools import wraps
 import requests
 import logging
+import socket
+import pkg_resources
 import nanosaur.variables as nsv
 from nanosaur.prompt_colors import TerminalFormatter
 
@@ -458,6 +460,32 @@ def download_file(url, folder_path, file_name, force=False) -> str:
     else:
         print(TerminalFormatter.color_text(f"Failed to download file. Status code: {response.status_code}", color='red'))
         return None
+
+
+def get_latest_version(package_name):
+    """Fetch the latest version of a package from PyPI."""
+    url = f"https://pypi.org/pypi/{package_name}/json"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()["info"]["version"]
+    return None
+
+
+def get_installed_version(package_name):
+    """Get the installed version of a package."""
+    try:
+        return pkg_resources.get_distribution(package_name).version
+    except pkg_resources.DistributionNotFound:
+        return None
+
+
+def has_internet_connection(host="8.8.8.8", port=53, timeout=3):
+    """Check if there is an active internet connection by trying to reach a known host."""
+    try:
+        socket.create_connection((host, port), timeout=timeout)
+        return True
+    except (socket.timeout, socket.error):
+        return False
 
 
 def require_sudo(func):

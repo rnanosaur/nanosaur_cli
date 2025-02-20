@@ -148,6 +148,27 @@ def check_nvidia_container_cli():
         return None
 
 
+def docker_pull_images(params: Params):
+    """Pull a Docker image."""
+    nanosaur_home_path = get_nanosaur_home()
+    # Create the full file path
+    robot = RobotList.current_robot(params)
+    docker_compose_path = os.path.join(nanosaur_home_path, "docker-compose.yml")
+    env_file_path = os.path.join(nanosaur_home_path, f'{robot.name}.env')
+
+    # Build env file
+    build_env_file(params)
+    # Create a DockerClient object with the docker-compose file
+    nanosaur_compose = DockerClient(compose_files=[docker_compose_path], compose_env_files=[env_file_path])
+    print(TerminalFormatter.color_text("Pulling all nanosaur images", color='green'))
+    try:
+        nanosaur_compose.compose.pull()
+    except DockerException as e:
+        print(TerminalFormatter.color_text(f"Error pulling the image: {e}", color='red'))
+        return False
+    return True
+
+
 def docker_service_run_command(platform, params: Params, service, command=None, name=None, volumes=None):
     """Run a command in the robot container."""
 
