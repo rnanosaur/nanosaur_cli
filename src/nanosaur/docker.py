@@ -148,19 +148,22 @@ def check_nvidia_container_cli():
         return None
 
 
-def docker_pull_images(params: Params):
+def docker_pull_images(platform, params: Params, args):
     """Pull a Docker image."""
     nanosaur_home_path = get_nanosaur_home()
     # Create the full file path
     robot = RobotList.current_robot(params)
     docker_compose_path = os.path.join(nanosaur_home_path, "docker-compose.yml")
     env_file_path = os.path.join(nanosaur_home_path, f'{robot.name}.env')
+    # Determine the device type
+    device_type = "robot" if platform['Machine'] == 'aarch64' else "desktop"
 
     # Build env file
     build_env_file(params)
     # Create a DockerClient object with the docker-compose file
-    nanosaur_compose = DockerClient(compose_files=[docker_compose_path], compose_env_files=[env_file_path])
-    print(TerminalFormatter.color_text("Pulling all nanosaur images", color='green'))
+    compose_profiles = [device_type]
+    nanosaur_compose = DockerClient(compose_files=[docker_compose_path], compose_env_files=[env_file_path], compose_profiles=compose_profiles)
+    print(TerminalFormatter.color_text("Pulling all Docker images...", bold=True))
     try:
         nanosaur_compose.compose.pull()
     except DockerException as e:

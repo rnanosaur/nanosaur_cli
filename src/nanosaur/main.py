@@ -266,20 +266,18 @@ def update(platform, params: Params, args):
     latest_version = get_latest_version(package_name)
 
     if installed_version is None:
-        if prompt_user(f"{package_name} is not installed. Install now?"):
+        if args.yes or prompt_user(f"{package_name} is not installed. Install now?"):
             print(TerminalFormatter.color_text(f"Installing {package_name}...", bold=True))
             subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
     elif installed_version < latest_version:
-        if prompt_user(f"Update {package_name} from {installed_version} to {latest_version}?"):
+        if args.yes or prompt_user(f"Update {package_name} from {installed_version} to {latest_version}?"):
             print(TerminalFormatter.color_text(f"Updating {package_name} from {installed_version} to {latest_version}...", bold=True))
             subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", package_name])
     else:
         print(TerminalFormatter.color_text(f"{package_name} is already up to date ({installed_version}).", color='green', bold=True))
 
-    if prompt_user("Do you want to pull all Docker images?"):
-        print(TerminalFormatter.color_text("Pulling all Docker images...", bold=True))
-        if docker_pull_images(params):
-            print(TerminalFormatter.color_text("Docker images pulled successfully", color='green'))
+    if (args.yes or prompt_user("Do you want to pull all Docker images?")) and docker_pull_images(platform, params, args):
+        print(TerminalFormatter.color_text("Docker images pulled successfully", color='green'))
 
     return True
 
@@ -386,6 +384,7 @@ def main():
 
     if 'mode' in params:
         parser_update = subparsers.add_parser('update', help="Update nanosaur to the latest version")
+        parser_update.add_argument('-y', '--yes', action='store_true', help="Skip confirmation prompt")
         parser_update.set_defaults(func=update)
 
     # Subcommand: workspace (with a sub-menu for workspace operations)
