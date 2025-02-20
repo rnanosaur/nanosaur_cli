@@ -327,13 +327,13 @@ def simulation_start(platform, params: Params, args):
     if simulation_data['tool'] not in simulation_tools:
         print(TerminalFormatter.color_text(f"Unknown simulation tool: {simulation_data['tool']}", color='red'))
         return False
-    # Check if Isaac Sim is selected but no version is set
-    if simulation_data['tool'] == 'isaac-sim' and 'isaac_sim_path' not in simulation_data:
-        print(TerminalFormatter.color_text("No Isaac Sim version selected. Please run simulation set first.", color='red'))
-        return False
     selected_location = simulation_data['location']
     # Check if the debug mode is enabled
     if selected_location == 'host':
+        # Check if Isaac Sim is selected but no version is set
+        if simulation_data['tool'] == 'isaac-sim' and 'isaac_sim_path' not in simulation_data:
+            print(TerminalFormatter.color_text("No Isaac Sim version selected. Please run simulation set first.", color='red'))
+            return False
         nanosaur_ws_path = workspace.get_workspace_path(params, 'ws_simulation_name')
         simulator_tool = simulation_data['tool']
         return simulation_start_debug(nanosaur_ws_path, simulator_tool, params)
